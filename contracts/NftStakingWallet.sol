@@ -72,10 +72,10 @@ contract NftStakingWallet is Ownable {
     }
 
     function claimPrize(address payable payee) public onlyOwner {
-        uint256 earnedInterest = getInterestEarned();
-        assert(_redeemCErc20Tokens(earnedInterest) == 0);
-        underlyingERC20.approve(payee, earnedInterest);
-        emit InterestClaimed(payee, earnedInterest);
+        uint256 interestEarned = getInterestEarned();
+        underlyingERC20.approve(payee, interestEarned);
+        assert(_redeemCErc20Tokens(interestEarned) == 0);
+        emit InterestClaimed(payee, interestEarned);
     }
 
     function claimComp() public onlyOwner {

@@ -67,15 +67,12 @@ describe("Staking wallet contract", function () {
     })
 
     it('should keep a running total of deposits', async () => {
-        // Input values
-        const totalDeposited = parseUnits("666")
-
-        // make a deposit
+        // make deposits
         await contract.deposit(999, parseEther("333"))
         await contract.deposit(888, parseEther("222"))
         await contract.deposit(777, parseEther("111"))
 
-        expect(await contract.totalDeposits()).to.be.equal(totalDeposited)
+        expect(await contract.totalDeposits()).to.be.equal(parseUnits("666"))
     })
 
     it('should send the interest to the address that won the prize', async () => {
