@@ -7,7 +7,9 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-abstract contract ICERC20 {
+import "hardhat/console.sol";
+
+abstract contract ICERC20 is IERC20 {
     function redeemUnderlying(uint redeemAmount) external virtual returns (uint);
     function mint(uint mintAmount) external virtual returns (uint);
     function exchangeRateCurrent() public view virtual returns(uint);
@@ -20,7 +22,7 @@ abstract contract ICompERC20 is IERC20 {
 // I found an example contract for interacting with compound here: https://github.com/Instadapp/dsa-connectors/blob/main/contracts/mainnet/connectors/compound/main.sol
 
 // This is meant to be constructed and owned by an ERC721 contract
-contract StakingWallet is Ownable {
+contract NftStakingWallet is Ownable {
     using SafeMath for uint256;
     using Address for address payable;
 
@@ -38,8 +40,8 @@ contract StakingWallet is Ownable {
         _;
     }
 
-    constructor(address _cTokenAddress, address _underlying, address _compErc20Address) Ownable() {
-        collection = IERC721(msg.sender);
+    constructor(address tokenCollectionContract, address _cTokenAddress, address _underlying, address _compErc20Address) Ownable() {
+        collection = IERC721(tokenCollectionContract);
         underlyingERC20 = IERC20(_underlying);
         cToken = ICERC20(_cTokenAddress);
         compErc20Token = ICompERC20(_compErc20Address);
@@ -52,8 +54,7 @@ contract StakingWallet is Ownable {
         return _deposits[tokenId];
     }
 
-    function deposit(uint256 tokenId) public payable virtual onlyOwner validTokenId(tokenId) {
-        uint256 amount = msg.value;
+    function deposit(uint256 tokenId, uint256 amount) public payable virtual onlyOwner validTokenId(tokenId) {
         _deposits[tokenId] += amount;
         totalOnDeposit += amount;
         assert(_supplyErc20ToCompound(amount) == 0);
@@ -102,8 +103,16 @@ contract StakingWallet is Ownable {
     }
 
     function getInterestEarned() public view returns (uint256) {
-        uint exchangeRateMantissa = cToken.exchangeRateCurrent();
-        uint256 interest = totalOnDeposit / exchangeRateMantissa;
+        uint exchangeRate = cToken.exchangeRateCurrent();
+        uint cTokenBalance = cToken.balanceOf(address(this));
+
+        uint256 valueOnDeposit = cTokenBalance * exchangeRate;
+
+        uint256 interest = valueOnDeposit - totalOnDeposit;
         return interest;
+    }
+
+    function totalDeposits() public view returns (uint256) {
+        return totalOnDeposit;
     }
 }
